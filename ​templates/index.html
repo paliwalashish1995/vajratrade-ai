@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#080d1a" />
+  <title>VajraTrade AI - Universal Multi-Demat Cloud</title>
+  <style>
+    :root { --bg:#080d1a; --card:#11192c; --card2:#1a2540; --border:#2a3a5c; --text:#f8fafc; --muted:#94a3b8; --green:#10b981; --red:#ef4444; --blue:#3b82f6; --amber:#f59e0b; --cyan:#38bdf8; }
+    * { box-sizing:border-box; margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+    body { background:var(--bg); color:var(--text); min-height:100vh; }
+    #authScreen { min-height:100vh; display:flex; justify-content:center; align-items:center; padding:20px; background:radial-gradient(circle at top,#132242 0%,#080d1a 70%); }
+    .auth-box { width:100%; max-width:400px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:24px 20px; }
+    .logo-wrap { text-align:center; margin-bottom:18px; }
+    .brand-title { font-size:24px; font-weight:800; margin-top:8px; }
+    .brand-title span { color:var(--amber); }
+    .auth-tabs { display:flex; background:var(--bg); border-radius:10px; padding:4px; margin-bottom:16px; }
+    .auth-tab { flex:1; padding:9px; border:none; border-radius:8px; background:transparent; color:var(--muted); font-weight:700; cursor:pointer; }
+    .auth-tab.active { background:var(--card2); color:var(--cyan); }
+    #appShell { display:none; padding-bottom:84px; }
+    .header { position:sticky; top:0; z-index:40; background:rgba(17,25,44,0.96); border-bottom:1px solid var(--border); padding:11px 14px; }
+    .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .ticker-strip { display:flex; gap:8px; overflow-x:auto; font-size:12px; font-weight:600; }
+    .ticker { background:var(--card2); padding:5px 10px; border-radius:8px; white-space:nowrap; }
+    .container { max-width:960px; margin:0 auto; padding:14px; }
+    .master-card { background:linear-gradient(145deg,#101b36 0%,#1a2847 100%); border:1.5px solid var(--cyan); border-radius:16px; padding:16px; margin-bottom:14px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; }
+    .card h3 { font-size:13px; color:var(--muted); margin-bottom:9px; display:flex; justify-content:space-between; align-items:center; }
+    .stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+    .stat-val { font-size:22px; font-weight:800; }
+    .green { color:var(--green); } .red { color:var(--red); } .amber { color:var(--amber); } .muted { color:var(--muted); }
+    .btn { padding:10px 14px; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+    .btn-full { width:100%; padding:13px; font-size:14px; }
+    .btn-green { background:var(--green); color:#052e16; } .btn-red { background:var(--red); color:#fff; } .btn-blue { background:var(--blue); color:#fff; } .btn-amber { background:var(--amber); color:#451a03; } .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+    .badge { padding:3px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+    .badge-paper { background:rgba(245,158,11,0.16); color:var(--amber); border:1px solid var(--amber); }
+    .badge-live { background:rgba(16,185,129,0.16); color:var(--green); border:1px solid var(--green); }
+    .perm-item { display:flex; justify-content:space-between; align-items:center; gap:8px; background:#0b1222; border:1px solid var(--border); padding:10px 12px; border-radius:10px; margin-bottom:8px; }
+    .pos-card { background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px; }
+    .logs-box { max-height:190px; overflow-y:auto; background:#030712; border-radius:10px; padding:10px; font-family:monospace; font-size:11px; }
+    .field { margin-bottom:10px; }
+    .field label { display:block; font-size:11px; color:var(--muted); margin-bottom:5px; }
+    .field input, .field select { width:100%; padding:10px; border-radius:9px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; }
+    .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:10px; }
+    .section { display:none; } .section.active { display:block; }
+    .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); display:flex; justify-content:space-around; padding:8px 4px 10px; }
+    .nav-item { background:none; border:none; color:var(--muted); font-size:11px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
+    .nav-item.active { color:var(--cyan); }
+    .privacy-on .sensitive { filter:blur(6px); }
+  </style>
+</head>
+<body>
+  <section id="authScreen">
+    <div class="auth-box">
+      <div class="logo-wrap">
+        <svg width="72" height="72" viewBox="0 0 512 512"><rect x="18" y="18" width="476" height="476" rx="108" fill="#0d1526" stroke="#38bdf8" stroke-width="14"/><polygon points="256,74 402,132 384,304 256,434 128,304 110,132" fill="#13223e" stroke="#38bdf8" stroke-width="10"/><polygon points="176,162 242,344 268,344 348,156 298,156 256,268 218,162" fill="#f59e0b"/></svg>
+        <div class="brand-title">Vajra<span>Trade</span> AI</div>
+        <div style="font-size:12px; color:var(--muted);">🏦 Universal Multi-Demat Cloud Auto-Trading</div>
+      </div>
+      <div class="auth-tabs">
+        <button id="tLogin" class="auth-tab active" onclick="swAuth('login')">🔐 Login</button>
+        <button id="tReg" class="auth-tab" onclick="swAuth('reg')">🆕 Register</button>
+      </div>
+      <div id="fLogin">
+        <div class="field"><label>Mobile Number / User ID</label><input id="l_id" placeholder="Enter Mobile or ID" /></div>
+        <div class="field"><label>Security PIN</label><input id="l_pin" type="password" placeholder="Enter PIN" /></div>
+        <div id="authErr" style="color:var(--red); font-size:12px; margin-bottom:8px;"></div>
+        <button class="btn btn-green btn-full" onclick="doLogin()">🔓 Cloud Login</button>
+      </div>
+      <div id="fReg" style="display:none;">
+        <div class="field"><label>Full Name</label><input id="r_name" placeholder="Your Name" /></div>
+        <div class="field"><label>Mobile Number / User ID</label><input id="r_id" placeholder="e.g. 9876543210" /></div>
+        <div class="field"><label>Set Security PIN (min 4)</label><input id="r_pin" type="password" placeholder="Set PIN" /></div>
+        <button class="btn btn-blue btn-full" onclick="doRegister()">✅ Create Account</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="appShell">
+    <header class="header">
+      <div class="header-top">
+        <strong style="font-size:16px;">⚡ Vajra<span style="color:var(--amber)">Trade</span> Universal</strong>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button class="btn btn-outline" style="padding:4px 8px;" onclick="document.body.classList.toggle('privacy-on')">👁️</button>
+          <span id="modeBadge" class="badge badge-paper">PAPER</span>
+          <button class="btn btn-red" style="padding:5px 9px; font-size:11px;" onclick="panicExit()">🛑 EXIT</button>
+        </div>
+      </div>
+      <div class="ticker-strip">
+        <div class="ticker">NIFTY: <span id="t_nifty">--</span></div>
+        <div class="ticker">BANKNIFTY: <span id="t_bnifty">--</span></div>
+        <div class="ticker">IST: <span id="sTime">--:--:--</span></div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="tab-auto" class="section active">
+        <div class="master-card">
+          <div style="font-size:11px; color:var(--cyan); font-weight:700; margin-bottom:4px;">☁️ 24/7 UNIVERSAL CLOUD ENGINE</div>
+          <div id="mStatus" style="font-size:19px; font-weight:800; margin-bottom:6px;">STOPPED</div>
+          <div id="schedLine" style="font-size:12px; color:var(--muted); margin-bottom:12px;">--</div>
+          <button id="armBtn" class="btn btn-green btn-full" onclick="toggleAuto()">▶ ARM AUTO-MODE (ON)</button>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="resetDay()">🔄 Reset Day</button>
+            <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="doLogout()">🔒 Lock</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><span>🔐 Demat Trading Permissions</span><small style="color:var(--cyan); cursor:pointer;" onclick="showTab('tab-brokers')">+ Link Demat</small></h3>
+          <div id="permList"></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="card" style="margin-bottom:0;"><h3>Today's P&amp;L</h3><div id="totPnl" class="stat-val sensitive">₹0.00</div></div>
+          <div class="card" style="margin-bottom:0;"><h3>Target / Kill-Switch</h3><div id="tgtVal" class="stat-val green sensitive" style="font-size:18px;">₹5,000</div><small class="red">Limit: <span id="lossVal" class="sensitive">₹2,000</span></small></div>
+        </div>
+
+        <div class="card"><h3>📈 Open Positions</h3><div id="openBox"></div></div>
+        <div class="card"><h3>⚡ Live Execution Logs</h3><div id="logsBox" class="logs-box"></div></div>
+      </section>
+
+      <section id="tab-sched" class="section">
+        <div class="card">
+          <h3>⏰ Auto-Schedule &amp; Risk Rules</h3>
+          <div class="form-grid">
+            <div class="field"><label>Mode</label><select id="s_mode"><option value="PAPER">PAPER (Safe Test)</option><option value="LIVE">LIVE (Real Demat Orders)</option></select></div>
+            <div class="field"><label>24/7 Paper Test</label><select id="s_24x7"><option value="true">YES</option><option value="false">NO (Wait 09:15)</option></select></div>
+            <div class="field"><label>Market Open (IST)</label><input type="time" id="s_open" /></div>
+            <div class="field"><label>Squareoff (IST)</label><input type="time" id="s_close" /></div>
+            <div class="field"><label>Capital (₹)</label><input type="number" id="s_cap" /></div>
+            <div class="field"><label>Daily Target (₹)</label><input type="number" id="s_tgt" /></div>
+            <div class="field"><label>Max Loss (₹)</label><input type="number" id="s_loss" /></div>
+            <div class="field"><label>Trailing SL (%)</label><input type="number" step="0.5" id="s_tsl" /></div>
+          </div>
+          <button class="btn btn-blue btn-full" onclick="saveSettings()">💾 Save Cloud Rules</button>
+        </div>
+      </section>
+
+      <section id="tab-brokers" class="section">
+        <div class="card">
+          <h3>🏦 Connect ANY Indian Demat Account</h3>
+          <div class="field">
+            <label>Select Your Broker</label>
+            <select id="b_type" onchange="updateBrokerFields()">
+              <option value="ANGEL_ONE">Angel One (SmartAPI)</option>
+              <option value="KOTAK_NEO">Kotak Neo (Trade API)</option>
+              <option value="ZERODHA">Zerodha (Kite Connect)</option>
+              <option value="UPSTOX">Upstox (v2 API)</option>
+              <option value="DHAN">DhanHQ (v2 API)</option>
+              <option value="FYERS">Fyers (v3 API)</option>
+              <option value="CUSTOM">Other / Any Custom Broker (Webhook/API)</option>
+            </select>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Account Label</label><input id="b_label" placeholder="e.g. My Personal Demat" /></div>
+            <div class="field" id="f_cid"><label>Client ID / User ID</label><input id="b_cid" placeholder="Broker Client ID" /></div>
+            <div class="field" id="f_key"><label>API Key / App ID</label><input id="b_key" placeholder="API Key" /></div>
+            <div class="field" id="f_sec"><label>API Secret (Optional)</label><input id="b_sec" type="password" placeholder="API Secret" /></div>
+            <div class="field" id="f_mpin"><label>MPIN / Password</label><input id="b_mpin" type="password" placeholder="Login MPIN" /></div>
+            <div class="field" id="f_totp"><label>TOTP Secret Key</label><input id="b_totp" type="password" placeholder="Authenticator TOTP Key" /></div>
+            <div class="field" id="f_tok" style="display:none;"><label>Access / Session Token</label><input id="b_tok" type="password" placeholder="Paste Broker Access Token" /></div>
+            <div class="field" id="f_web" style="display:none;"><label>Custom Broker Order URL</label><input id="b_web" placeholder="https://your-broker-api/order" /></div>
+          </div>
+          <button class="btn btn-green btn-full" onclick="addBroker()">➕ Link Demat Account</button>
+        </div>
+
+        <div class="card">
+          <h3>Linked Demat Accounts (Test Login &amp; Permissions)</h3>
+          <div id="brokersFull"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="showTab('tab-auto',this)"><span>🤖</span>Auto</button>
+      <button class="nav-item" onclick="showTab('tab-sched',this)"><span>⏰</span>Schedule</button>
+      <button class="nav-item" onclick="showTab('tab-brokers',this)"><span>🏦</span>All Demat</button>
+    </nav>
+  </div>
+
+  <script>
+    let isArmed = false, settingsLoaded = false;
+
+    function updateBrokerFields() {
+      const t = document.getElementById('b_type').value;
+      document.getElementById('f_mpin').style.display = (t === 'ANGEL_ONE') ? 'block' : 'none';
+      document.getElementById('f_totp').style.display = (t === 'ANGEL_ONE') ? 'block' : 'none';
+      document.getElementById('f_tok').style.display = (t !== 'ANGEL_ONE') ? 'block' : 'none';
+      document.getElementById('f_web').style.display = (t === 'CUSTOM') ? 'block' : 'none';
+    }
+
+    function swAuth(m){
+      fLogin.style.display = m==='login'?'block':'none'; fReg.style.display = m==='reg'?'block':'none';
+      tLogin.classList.toggle('active', m==='login'); tReg.classList.toggle('active', m==='reg');
+    }
+    async function checkAuth(){
+      const r = await fetch('/api/auth/state'); const d = await r.json();
+      if(d.authenticated) enterApp(); else swAuth(d.registered ? 'login' : 'reg');
+    }
+    async function doRegister(){
+      const r = await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:r_name.value,loginId:r_id.value,pin:r_pin.value})});
+      if(r.ok) enterApp(); else alert((await r.json()).error);
+    }
+    async function doLogin(){
+      const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loginId:l_id.value,pin:l_pin.value})});
+      if(r.ok) enterApp(); else authErr.innerText = (await r.json()).error;
+    }
+    async function doLogout(){ await fetch('/api/auth/logout',{method:'POST'}); location.reload(); }
+    function enterApp(){ authScreen.style.display='none'; appShell.style.display='block'; updateBrokerFields(); poll(); }
+    function showTab(id,btn){
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if(btn){ document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+    }
+
+    async function poll(){
+      if(appShell.style.display!=='block') return;
+      const r = await fetch('/api/status'); if(r.status===401) return location.reload();
+      const d = await r.json(); isArmed = d.auto_armed;
+      t_nifty.innerText=d.ticks.NIFTY; t_bnifty.innerText=d.ticks.BANKNIFTY; sTime.innerText=d.server_time;
+      modeBadge.innerText=d.settings.mode;
+      modeBadge.className = 'badge ' + (d.settings.mode==='LIVE'?'badge-live':'badge-paper');
+      mStatus.innerHTML = d.status_text==='AUTO_RUNNING'?'<span class="green">● CLOUD AUTO-RUNNING</span>':(d.status_text==='WAITING_FOR_MARKET_OPEN'?`<span class="amber">⏳ WAITING ${d.settings.market_open} IST</span>`:`<span class="muted">${d.status_text}</span>`);
+      armBtn.innerText = isArmed?'⏸ STOP AUTO-MODE (OFF)':'▶ ARM AUTO-MODE (ON)';
+      armBtn.className = 'btn btn-full ' + (isArmed?'btn-amber':'btn-green');
+      schedLine.innerText = `Open: ${d.settings.market_open} IST | Close: ${d.settings.market_close} IST`;
+      totPnl.innerText = '₹'+d.total_pnl.toFixed(2); totPnl.className='stat-val sensitive '+(d.total_pnl>=0?'green':'red');
+      tgtVal.innerText='₹'+d.settings.daily_profit_target; lossVal.innerText='₹'+d.settings.daily_max_loss;
+
+      permList.innerHTML = d.brokers.map(b=>`
+        <div class="perm-item">
+          <div><strong>${b.broker_name}</strong> ${b.verified?'<span class="green">✓</span>':''}<br/><small class="sensitive">${b.account_label} • ${b.client_id}</small></div>
+          <button class="btn ${b.trade_permission?'btn-green':'btn-outline'}" style="padding:6px 10px;font-size:11px;" onclick="togPerm('${b.id}')">${b.trade_permission?'✅ ON':'⛔ OFF'}</button>
+        </div>`).join('');
+
+      brokersFull.innerHTML = d.brokers.map(b=>`
+        <div class="perm-item">
+          <div><strong>${b.broker_name}</strong><br/><small class="sensitive">${b.client_id} • ${b.verified?'<span class="green">Verified</span>':'<span class="amber">Not Tested</span>'}</small></div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-blue" style="padding:5px 8px;font-size:11px;" onclick="testBroker('${b.id}')">Test</button>
+            <button class="btn btn-red" style="padding:5px 8px;font-size:11px;" onclick="delBroker('${b.id}')">Del</button>
+          </div>
+        </div>`).join('') || '<small class="muted">No Demat linked yet.</small>';
+
+      openBox.innerHTML = d.open_positions.map(p=>`<div class="pos-card"><strong>${p.symbol}</strong> (${p.broker}) • Qty ${p.qty}<br/>Entry ₹${p.entry_price} | LTP ₹${p.ltp} | TSL <span class="amber">₹${p.sl_price}</span><br/><strong class="sensitive ${p.pnl>=0?'green':'red'}">P&L: ₹${p.pnl}</strong> <button class="btn btn-red" style="padding:3px 8px;font-size:11px;float:right;" onclick="exitPos('${p.id}')">Exit</button></div>`).join('') || '<small class="muted">No open trades.</small>';
+      logsBox.innerHTML = d.logs.map(l=>`<div style="margin-bottom:4px;">[${l.time}] ${l.msg}</div>`).join('');
+
+      if(!settingsLoaded){
+        settingsLoaded=true; s_mode.value=d.settings.mode; s_24x7.value=String(d.settings.allow_24x7);
+        s_open.value=d.settings.market_open; s_close.value=d.settings.market_close;
+        s_cap.value=d.settings.daily_capital; s_tgt.value=d.settings.daily_profit_target;
+        s_loss.value=d.settings.daily_max_loss; s_tsl.value=d.settings.trailing_sl_pct;
+      }
+    }
+
+    async function toggleAuto(){ await fetch('/api/engine/auto-mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enable:!isArmed})}); poll(); }
+    async function togPerm(id){ await fetch('/api/brokers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'TOGGLE',id})}); poll(); }
+    async function panicExit(){ if(confirm('EXIT ALL?')){ await fetch('/api/engine/panic-exit',{method:'POST'}); poll(); } }
+    async function exitPos(id){ await fetch('/api/engine/exit-pos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); poll(); }
+    async function resetDay(){ await fetch('/api/engine/reset',{method:'POST'}); poll(); }
+    async function saveSettings(){
+      await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:s_mode.value,allow_24x7:s_24x7.value==='true',market_open:s_open.value,market_close:s_close.value,daily_capital:Number(s_cap.value),daily_profit_target:Number(s_tgt.value),daily_max_loss:Number(s_loss.value),trailing_sl_pct:Number(s_tsl.value)})});
+      alert('Cloud Rules Saved!'); settingsLoaded=false; poll();
+    }
+    async function addBroker(){
+      const sel = document.getElementById('b_type');
+      await fetch('/api/brokers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        broker_type: sel.value, broker_name: sel.options[sel.selectedIndex].text,
+        account_label: b_label.value || 'My Demat', client_id: b_cid.value,
+        api_key: b_key.value, api_secret: b_sec.value, mpin: b_mpin.value,
+        totp_secret: b_totp.value, access_token: b_tok.value, webhook_url: b_web.value
+      })});
+      b_cid.value=''; b_key.value=''; b_sec.value=''; b_mpin.value=''; b_totp.value=''; b_tok.value=''; b_web.value='';
+      alert('Demat Account Linked! Tap "Test" to verify live login.'); poll();
+    }
+    async function testBroker(id){
+      const r = await fetch('/api/brokers/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+      const d = await r.json(); alert(d.msg); poll();
+    }
+    async function delBroker(id){ await fetch('/api/brokers?id='+id,{method:'DELETE'}); poll(); }
+
+    checkAuth(); setInterval(poll, 1500);
+  </script>
+</body>
+</html>
