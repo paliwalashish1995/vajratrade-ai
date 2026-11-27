@@ -30,25 +30,10 @@ jobs:
       - name: Create Capacitor WebView App
         run: |
           mkdir -p android-wrapper/www
-          cat << 'EOF' > android-wrapper/www/index.html
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>VajraTrade AI</title>
-            <script>
-              window.location.replace("https://vajratrade-ai.onrender.com");
-            </script>
-          </head>
-          <body>
-            <p>Loading VajraTrade AI...</p>
-          </body>
-          </html>
-          EOF
+          printf '<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>VajraTrade AI</title><script>window.location.replace("https://vajratrade-ai.onrender.com");</script></head><body><p>Loading VajraTrade AI...</p></body></html>' > android-wrapper/www/index.html
           cd android-wrapper
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           npx cap init "VajraTrade AI" "com.vajratrade.ai" --web-dir www
           npx cap add android
 
