@@ -24,15 +24,30 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Capacitor WebView App
+      - name: Create Capacitor Native Wrapper
         run: |
           mkdir -p android-wrapper/www
-          printf '<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>VajraTrade AI</title><script>window.location.replace("https://vajratrade-ai.onrender.com");</script></head><body><p>Loading VajraTrade AI...</p></body></html>' > android-wrapper/www/index.html
+          echo "<h1>Loading VajraTrade AI...</h1>" > android-wrapper/www/index.html
           cd android-wrapper
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           npx cap init "VajraTrade AI" "com.vajratrade.ai" --web-dir www
           npx cap add android
+          node -e '
+            const fs = require("fs");
+            const cfg = {
+              appId: "com.vajratrade.ai",
+              appName: "VajraTrade AI",
+              webDir: "www",
+              server: {
+                url: "https://vajratrade-ai.onrender.com",
+                cleartext: true,
+                allowNavigation: ["*"]
+              }
+            };
+            fs.writeFileSync("capacitor.config.json", JSON.stringify(cfg, null, 2));
+          '
+          npx cap sync android
 
       - name: Build Debug APK
         run: |
