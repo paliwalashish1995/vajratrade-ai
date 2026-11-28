@@ -9,11 +9,34 @@ from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, request, jsonify, session
 from broker_engine import UniversalBrokerEngine
 
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+except ImportError:
+    firebase_admin = None
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vajratrade_ai_universal_secret_2026")
 
 IST = timezone(timedelta(hours=5, minutes=30))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "vajratrade_universal.db"))
+
+# --- Firebase Firestore Setup ---
+fs_db = None
+_mem_cache = {}
+_db_lock = threading.Lock()
+
+_fb_key_raw = os.environ.get("FIREBASE_KEY", "").strip()
+if _fb_key_raw and firebase_admin is not None:
+    try:
+        cred_dict = json.loads(_fb_key_raw)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(credentials.Certificate(cred_dict))
+        fs_db = firestore.client()
+        print("Firebase Firestore connected successfully!")
+    except Exception as e:
+        print(f"Firebase init failed, using SQLite fallback: {e}")
+        fs_db = None
 
 
 def now_ist():
@@ -33,25 +56,54 @@ def init_db():
 
 
 def db_get(key, default):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT v FROM kv_store WHERE k = ?", (key,))
-    row = c.fetchone()
-    conn.close()
-    if row:
-        try:
-            return json.loads(row[0])
-        except Exception:
-            return default
-    return default
+    with _db_lock:
+        if key in _mem_cache:
+            try:
+                return json.loads(_mem_cache[key])
+            except Exception:
+                return default
+
+        if fs_db is not None:
+            try:
+                doc = fs_db.collection("vajratrade_store").document(key).get()
+                if doc.exists:
+                    raw = doc.to_dict().get("v")
+                    if raw is not None:
+                        _mem_cache[key] = raw
+                        return json.loads(raw)
+                return default
+            except Exception as e:
+                print(f"Firestore read error ({key}): {e}")
+
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT v FROM kv_store WHERE k = ?", (key,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            try:
+                _mem_cache[key] = row[0]
+                return json.loads(row[0])
+            except Exception:
+                return default
+        return default
 
 
 def db_set(key, value):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("REPLACE INTO kv_store (k, v) VALUES (?, ?)", (key, json.dumps(value, ensure_ascii=False)))
-    conn.commit()
-    conn.close()
+    raw = json.dumps(value, ensure_ascii=False)
+    with _db_lock:
+        _mem_cache[key] = raw
+        if fs_db is not None:
+            try:
+                fs_db.collection("vajratrade_store").document(key).set({"v": raw})
+            except Exception as e:
+                print(f"Firestore write error ({key}): {e}")
+
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("REPLACE INTO kv_store (k, v) VALUES (?, ?)", (key, raw))
+        conn.commit()
+        conn.close()
 
 
 init_db()
@@ -102,7 +154,7 @@ runtime = {
     "realized_pnl": 0.0,
     "unrealized_pnl": 0.0,
     "open_positions": [],
-    "logs": [{"time": now_ist().strftime("%H:%M:%S"), "level": "INFO", "msg": "VajraTrade AI Universal Multi-Demat Cloud Ready (IST)."}],
+    "logs": [{"time": now_ist().strftime("%H:%M:%S"), "level": "INFO", "msg": f"VajraTrade AI Cloud Ready ({'Firebase DB' if fs_db else 'Local DB'})."}],
     "ticks": {"NIFTY": 24350.0, "BANKNIFTY": 52180.0, "FINNIFTY": 23490.0}
 }
 
